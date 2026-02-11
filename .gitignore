@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build / Next.js
+.next/
+out/
+build/
+dist/
+
+# Env (nunca commitar chaves)
+.env
+.env.local
+.env.*.local
+
+# Secrets e chaves
+secrets/
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!tailwind.config.*
+!postcss.config.*
+!next.config.*
+
+# Debug / IDE
+.DS_Store
+*.log
+npm-debug.log*
+.vscode/
+.idea/
+
+# Vercel
+.vercel
+
+# Outros projetos dentro da pasta (repos separados)
+image-studio-pro/
+
+# TypeScript
+*.tsbuildinfo

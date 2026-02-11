@@ -1,0 +1,34 @@
+"use client";
+
+import { useState } from "react";
+import { Slider } from "@/components/ui/slider";
+import { Palette, Briefcase } from "lucide-react";
+
+export function VisualAttributesSection() {
+  const [value, setValue] = useState([50]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between text-xs text-muted-foreground">
+        <span className="flex items-center gap-1.5">
+          <Palette className="w-3.5 h-3.5" />
+          Criativo
+        </span>
+        <span className="flex items-center gap-1.5">
+          Profissional
+          <Briefcase className="w-3.5 h-3.5" />
+        </span>
+      </div>
+      <Slider
+        value={value}
+        onValueChange={setValue}
+        max={100}
+        step={1}
+        className="[&_[role=slider]]:bg-accent [&_[role=slider]]:border-0 [&_[role=slider]]:w-5 [&_[role=slider]]:h-5 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-accent/30"
+      />
+      <p className="text-center text-xs text-muted-foreground">
+        Sobriedade estética: {value[0]}%
+      </p>
+    </div>
+  );
+}
