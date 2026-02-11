@@ -14,7 +14,17 @@ export async function generateWithImagen(prompt: string) {
         parts: [{ text: prompt }],
       },
     ],
+    generationConfig: {
+      temperature: 0.8,
+    },
   });
 
-  return result.response;
+  const images = result.response.candidates?.[0]?.content?.parts;
+  const base64 = images?.find((p: { inlineData?: { data?: string } }) => p.inlineData)?.inlineData?.data;
+
+  if (!base64) {
+    throw new Error("Imagen did not return an image.");
+  }
+
+  return base64;
 }

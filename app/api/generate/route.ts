@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     }
 
     const result = await runPipeline({
+      userId: user.id,
       subjectUrl,
       style,
       composition,
@@ -82,8 +83,8 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json({
-      imageUrl: result.imageUrl,
       status: result.status,
+      imageUrl: result.imageUrl,
       log: result.log,
       error: result.error,
     });

@@ -9,7 +9,9 @@ export type PipelineLogEntry = {
   at: number;
 };
 
-export interface PipelineInput extends DirectorInput {}
+export interface PipelineInput extends DirectorInput {
+  userId: string;
+}
 
 export interface PipelineResult {
   imageUrl: string;
@@ -42,19 +44,17 @@ export async function runPipeline(
   push("Critic", "Typography safe, no artifacts.");
 
   push("Renderer", "Generating 4K output...");
-  const { imageUrl, metadata } = await renderImage({
-    prompt: refinedPrompt,
-    subjectImageUrl: input.subjectUrl,
-  });
-
-  if ((metadata as { error?: string })?.error) {
+  let imageUrl: string;
+  try {
+    imageUrl = await renderImage(refinedPrompt, input.userId);
+  } catch (err) {
     push("Done", "Generation failed.");
     return {
       imageUrl: "",
       status: "error",
       prompt: refinedPrompt,
       log,
-      error: (metadata as { error: string }).error,
+      error: err instanceof Error ? err.message : String(err),
     };
   }
 
