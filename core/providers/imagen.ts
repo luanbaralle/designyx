@@ -1,27 +1,50 @@
-import { getVertexClient } from "@/lib/vertex/client";
+import { GoogleAuth } from "google-auth-library";
 
+/**
+ * Imagen uses the predict REST API (not generateContent).
+ * generateContent = Gemini-style endpoint → quota: generate_content_requests_per_minute
+ * predict = Imagen endpoint → quota: Imagen-specific (different, often available)
+ *
+ * @see https://cloud.google.com/vertex-ai/generative-ai/docs/image/generate-images
+ */
 export async function generateWithImagen(prompt: string) {
-  const vertex = getVertexClient();
+  const project = process.env.VERTEX_PROJECT_ID!;
+  const location = process.env.VERTEX_LOCATION!;
+  const model = process.env.IMAGEN_MODEL_ID!;
 
-  const model = vertex.preview.getGenerativeModel({
-    model: process.env.IMAGEN_MODEL_ID!,
+  const auth = new GoogleAuth({
+    scopes: ["https://www.googleapis.com/auth/cloud-platform"],
   });
+  const client = await auth.getClient();
+  const token = await client.getAccessToken();
+  if (!token.token) {
+    throw new Error("Failed to get Google Cloud access token");
+  }
 
-  const result = await model.generateContent({
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: prompt }],
-      },
-    ],
-    generationConfig: {
-      temperature: 0.8,
+  const url = `https://${location}-aiplatform.googleapis.com/v1/projects/${project}/locations/${location}/publishers/google/models/${model}:predict`;
+
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token.token}`,
+      "Content-Type": "application/json",
     },
+    body: JSON.stringify({
+      instances: [{ prompt }],
+      parameters: { sampleCount: 1 },
+    }),
   });
 
-  const images = result.response.candidates?.[0]?.content?.parts;
-  const base64 = images?.find((p: { inlineData?: { data?: string } }) => p.inlineData)?.inlineData?.data;
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Imagen API error ${res.status}: ${err}`);
+  }
 
+  const data = (await res.json()) as {
+    predictions?: Array<{ bytesBase64Encoded?: string; mimeType?: string }>;
+  };
+
+  const base64 = data.predictions?.[0]?.bytesBase64Encoded;
   if (!base64) {
     throw new Error("Imagen did not return an image.");
   }
