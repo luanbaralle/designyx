@@ -1,11 +1,13 @@
 "use client";
 
 import { Switch } from "@/components/ui/switch";
-import { useState } from "react";
+import { useStudioStore } from "../../state/studio.store";
 
 export function PostEffectsSection() {
-  const [blur, setBlur] = useState(false);
-  const [gradient, setGradient] = useState(true);
+  const blur = useStudioStore((s) => s.postfxBlur);
+  const gradient = useStudioStore((s) => s.postfxGradient);
+  const setBlur = useStudioStore((s) => s.setPostfxBlur);
+  const setGradient = useStudioStore((s) => s.setPostfxGradient);
 
   return (
     <div className="space-y-4">

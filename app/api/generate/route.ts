@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { hasEnoughCredits, deductCredit } from "@/lib/credits";
 import { runPipeline } from "@/core/engine/pipeline";
+import {
+  buildCreativeSpecFromAPI,
+  type ApiCreativeSpecBody,
+} from "@/core/spec/creative-spec";
 
 export async function POST(request: Request) {
   try {
@@ -23,35 +27,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const {
-      subjectUrl,
-      style = "cinematic",
-      composition = "medium-shot",
-      lighting = "cinematic",
-      headline,
-      subheadline,
-      cta,
-      niche,
-      environment,
-    } = body as {
-      subjectUrl?: string;
-      style?: string;
-      composition?: string;
-      lighting?: string;
-      headline?: string;
-      subheadline?: string;
-      cta?: string;
-      niche?: string;
-      environment?: string;
-    };
-
-    if (!subjectUrl) {
-      return NextResponse.json(
-        { error: "subjectUrl is required" },
-        { status: 400 }
-      );
-    }
+    const body = (await request.json()) as ApiCreativeSpecBody;
 
     const deducted = await deductCredit(user.id);
     if (!deducted) {
@@ -61,32 +37,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await runPipeline({
-      userId: user.id,
-      subjectUrl,
-      style,
-      composition,
-      lighting,
-      headline,
-      subheadline,
-      cta,
-      niche,
-      environment,
+    const spec = buildCreativeSpecFromAPI({
+      ...body,
+      subjectUrl: body.subjectUrl ?? undefined,
     });
+    const result = await runPipeline({ userId: user.id, spec });
 
+    if (result.status === "error") {
+      return NextResponse.json(
+        { error: result.error, log: result.log },
+        { status: 500 }
+      );
+    }
     await supabase.from("generations").insert({
       user_id: user.id,
-      prompt: result.prompt,
-      style,
-      image_url: result.imageUrl || null,
+      prompt: null,
+      style: spec.style.preset,
+      image_url: result.backgroundUrl,
       status: result.status,
     });
 
     return NextResponse.json({
       status: result.status,
-      imageUrl: result.imageUrl,
+      backgroundUrl: result.backgroundUrl,
+      imageUrl: result.backgroundUrl,
       log: result.log,
-      error: result.error,
     });
   } catch (e) {
     console.error("Generate error:", e);

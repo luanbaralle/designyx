@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useStudioStore } from "../../state/studio.store";
 
 function ColorPicker({
   label,
@@ -30,9 +30,12 @@ function ColorPicker({
 }
 
 export function ColorLightSection() {
-  const [ambient, setAmbient] = useState("#1a1a2e");
-  const [rim, setRim] = useState("#e94560");
-  const [fill, setFill] = useState("#f5a623");
+  const ambient = useStudioStore((s) => s.ambientColor);
+  const rim = useStudioStore((s) => s.rimColor);
+  const fill = useStudioStore((s) => s.fillColor);
+  const setAmbient = useStudioStore((s) => s.setAmbientColor);
+  const setRim = useStudioStore((s) => s.setRimColor);
+  const setFill = useStudioStore((s) => s.setFillColor);
 
   return (
     <div className="space-y-4">

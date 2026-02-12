@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStudioStore } from "../../state/studio.store";
 
 export function FloatingElementsSection() {
-  const [enabled, setEnabled] = useState(false);
-  const [value, setValue] = useState("");
+  const enabled = useStudioStore((s) => s.floatingElementsEnabled);
+  const value = useStudioStore((s) => s.floatingElementsPrompt);
+  const setEnabled = useStudioStore((s) => s.setFloatingElementsEnabled);
+  const setValue = useStudioStore((s) => s.setFloatingElementsPrompt);
 
   return (
     <div className="space-y-4">

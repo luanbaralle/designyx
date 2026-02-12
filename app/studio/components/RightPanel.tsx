@@ -4,6 +4,22 @@ import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import { Flame, ImageIcon, Download, Maximize2 } from "lucide-react";
 import { useStudioStore } from "../state/studio.store";
+import { ComposerCanvas } from "./ComposerCanvas";
+import { compose } from "@/lib/composer";
+import {
+  exportToAssetMetadata,
+  downloadPng,
+  downloadAssetMetadata,
+} from "@/lib/composer";
+import { buildCreativeSpecFromStore } from "@/core/spec/creative-spec";
+import { getLayoutTemplate } from "@/core/templates/layouts";
+
+const DIMENSIONS: Record<string, [number, number]> = {
+  "1:1": [1080, 1080],
+  "9:16": [1080, 1920],
+  "16:9": [1280, 720],
+  "4:5": [1080, 1350],
+};
 
 interface RightPanelProps {
   onGenerate: () => void;
@@ -18,7 +34,41 @@ export function RightPanel({ onGenerate }: RightPanelProps) {
   const credits = useStudioStore((s) => s.credits);
 
   const displayUrl = currentResultUrl || subjectUrl;
-  const canGenerate = credits > 0 && !!subjectUrl && !isGenerating;
+  const canGenerate = credits > 0 && !isGenerating;
+
+  const handleExport = async () => {
+    if (!displayUrl) return;
+    const store = useStudioStore.getState();
+    const spec = buildCreativeSpecFromStore(store);
+    const [w, h] = DIMENSIONS[store.dimension] ?? DIMENSIONS["1:1"];
+    const layout = getLayoutTemplate(spec.templateId).layout;
+    try {
+      const canvas = await compose({
+        width: w,
+        height: h,
+        backgroundUrl: displayUrl,
+        headline: store.headline,
+        subheadline: store.subheadline,
+        cta: store.cta,
+        textEnabled: store.textOverlayEnabled,
+        layout: layout as "text_right" | "text_left" | "text_overlay_center",
+      });
+      downloadPng(canvas);
+      const asset = exportToAssetMetadata(canvas, spec, displayUrl);
+      downloadAssetMetadata(asset);
+      await fetch("/api/generation/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          spec,
+          backgroundUrl: displayUrl,
+          finalPng: asset.finalPng,
+        }),
+      });
+    } catch (e) {
+      console.error("Export failed:", e);
+    }
+  };
 
   return (
     <div className="flex flex-col gap-6 h-full">
@@ -29,7 +79,10 @@ export function RightPanel({ onGenerate }: RightPanelProps) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              className="p-2 rounded-xl hover:bg-secondary/50 transition-colors text-muted-foreground hover:text-foreground"
+              onClick={handleExport}
+              disabled={!displayUrl}
+              className="p-2 rounded-xl hover:bg-secondary/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Exportar PNG + metadata"
             >
               <Download className="w-4 h-4" />
             </button>
@@ -82,19 +135,9 @@ export function RightPanel({ onGenerate }: RightPanelProps) {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="relative w-full h-full min-h-[360px]"
+                className="relative w-full h-full min-h-[360px] flex items-center justify-center"
               >
-                <Image
-                  src={displayUrl}
-                  alt="Preview"
-                  fill
-                  className="object-contain"
-                  sizes="(max-width: 768px) 100vw, 60vw"
-                  unoptimized={
-                    displayUrl.startsWith("blob:") ||
-                    displayUrl.includes("supabase")
-                  }
-                />
+                <ComposerCanvas />
               </motion.div>
             ) : (
               <motion.div

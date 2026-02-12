@@ -1,15 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStudioStore } from "../../state/studio.store";
 
 export function ScenarioSection() {
-  const [nicheVal, setNicheVal] = useState("");
-  const [environment, setEnvironment] = useState("");
-  const [useRef, setUseRef] = useState(false);
+  const niche = useStudioStore((s) => s.niche);
+  const environment = useStudioStore((s) => s.environment);
+  const useScenarioRef = useStudioStore((s) => s.useScenarioRef);
+  const setNiche = useStudioStore((s) => s.setNiche);
+  const setEnvironment = useStudioStore((s) => s.setEnvironment);
+  const setUseScenarioRef = useStudioStore((s) => s.setUseScenarioRef);
 
   return (
     <div className="space-y-4">
@@ -18,8 +21,8 @@ export function ScenarioSection() {
         <Input
           className="studio-input mt-1.5"
           placeholder="Ex: Trader de Elite"
-          value={nicheVal}
-          onChange={(e) => setNicheVal(e.target.value)}
+          value={niche}
+          onChange={(e) => setNiche(e.target.value)}
         />
       </div>
       <div>
@@ -36,11 +39,11 @@ export function ScenarioSection() {
         <span className="text-sm font-medium text-foreground">
           Referência de cenário
         </span>
-        <Switch checked={useRef} onCheckedChange={setUseRef} />
+        <Switch checked={useScenarioRef} onCheckedChange={setUseScenarioRef} />
       </div>
 
       <AnimatePresence>
-        {useRef && (
+        {useScenarioRef && (
           <motion.div
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}

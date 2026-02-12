@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Palette, Briefcase } from "lucide-react";
+import { useStudioStore } from "../../state/studio.store";
 
 export function VisualAttributesSection() {
-  const [value, setValue] = useState([50]);
+  const value = useStudioStore((s) => s.attributesScore);
+  const setValue = useStudioStore((s) => s.setAttributesScore);
 
   return (
     <div className="space-y-4">
@@ -20,14 +21,14 @@ export function VisualAttributesSection() {
         </span>
       </div>
       <Slider
-        value={value}
-        onValueChange={setValue}
+        value={[value]}
+        onValueChange={([v]) => setValue(v ?? 50)}
         max={100}
         step={1}
         className="[&_[role=slider]]:bg-accent [&_[role=slider]]:border-0 [&_[role=slider]]:w-5 [&_[role=slider]]:h-5 [&_[role=slider]]:shadow-lg [&_[role=slider]]:shadow-accent/30"
       />
       <p className="text-center text-xs text-muted-foreground">
-        Sobriedade estética: {value[0]}%
+        Sobriedade estética: {value}%
       </p>
     </div>
   );

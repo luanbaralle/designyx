@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getUploadUrl, recordUpload, type UploadType } from "@/lib/storage";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   try {
     const supabase = await createClient();
@@ -28,7 +30,7 @@ export async function POST(request: Request) {
     const result = await getUploadUrl(user.id, file, type);
     if (!result) {
       return NextResponse.json(
-        { error: "Upload failed" },
+        { error: "Falha ao enviar para o storage. Verifique se o bucket designyx-uploads existe e as políticas de acesso." },
         { status: 500 }
       );
     }
@@ -38,8 +40,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: result.url });
   } catch (e) {
     console.error("Upload error:", e);
+    const msg = e instanceof Error ? e.message : "Erro ao processar upload";
     return NextResponse.json(
-      { error: "Upload failed" },
+      { error: msg },
       { status: 500 }
     );
   }

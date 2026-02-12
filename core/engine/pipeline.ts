@@ -1,22 +1,25 @@
-import { buildPrompt } from "./director";
-import { runCriticLoop } from "@/core/critic";
-import { renderImage } from "./renderer";
-import type { DirectorInput } from "./director";
+/**
+ * Pipeline — Director → RenderPlan → Asset Generator (background-only) → backgroundUrl
+ */
+
+import { buildRenderPlan } from "./director";
+import { generateBackground } from "./asset-generator";
+import type { CreativeSpec } from "@/core/spec/types";
 
 export type PipelineLogEntry = {
-  role: "Director" | "Critic" | "Renderer" | "Done";
+  role: "Director" | "Renderer" | "Done";
   message: string;
   at: number;
 };
 
-export interface PipelineInput extends DirectorInput {
+export interface PipelineInput {
   userId: string;
+  spec: CreativeSpec;
 }
 
 export interface PipelineResult {
-  imageUrl: string;
+  backgroundUrl: string;
   status: "success" | "error";
-  prompt: string;
   log: PipelineLogEntry[];
   error?: string;
 }
@@ -32,37 +35,43 @@ export async function runPipeline(
     onLog?.(entry);
   };
 
-  push("Director", "Anchoring subject identity...");
-  const rawPrompt = buildPrompt(input);
-  push("Director", "Prompt built.");
+  push("Director", "Building render plan...");
+  const plan = buildRenderPlan(input.spec);
+  push("Director", "Render plan ready.");
 
-  push("Critic", "Adjusting contrast for premium look...");
-  const { finalPrompt: refinedPrompt } = await runCriticLoop(
-    { initialPrompt: rawPrompt },
-    { maxIterations: 2 }
-  );
-  push("Critic", "Typography safe, no artifacts.");
+  const backgroundStage = plan.stages.find((s) => s.stage === "background");
+  if (!backgroundStage) {
+    push("Done", "No background stage.");
+    return {
+      backgroundUrl: "",
+      status: "error",
+      log,
+      error: "No background stage in render plan",
+    };
+  }
 
-  push("Renderer", "Generating 4K output...");
-  let imageUrl: string;
+  push("Renderer", "Generating background...");
+  let backgroundUrl: string;
   try {
-    imageUrl = await renderImage(refinedPrompt, input.userId);
+    backgroundUrl = await generateBackground(
+      backgroundStage,
+      input.userId,
+      input.spec.format
+    );
   } catch (err) {
     push("Done", "Generation failed.");
     return {
-      imageUrl: "",
+      backgroundUrl: "",
       status: "error",
-      prompt: refinedPrompt,
       log,
       error: err instanceof Error ? err.message : String(err),
     };
   }
 
-  push("Done", "Image ready.");
+  push("Done", "Background ready.");
   return {
-    imageUrl,
+    backgroundUrl,
     status: "success",
-    prompt: refinedPrompt,
     log,
   };
 }

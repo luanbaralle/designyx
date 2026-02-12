@@ -18,7 +18,10 @@ export async function getUploadUrl(
     upsert: false,
   });
 
-  if (error) return null;
+  if (error) {
+    console.error("Storage upload error:", error.message, error);
+    return null;
+  }
 
   const {
     data: { publicUrl },

@@ -1,42 +1,65 @@
 "use client";
 
-import { Upload, User } from "lucide-react";
+import { Upload, User, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useStudioStore } from "../../state/studio.store";
 
 interface SubjectSectionProps {
   onUploadClick: () => void;
+  onUploadFile: (file: File) => void;
 }
 
-export function SubjectSection({ onUploadClick }: SubjectSectionProps) {
+export function SubjectSection({ onUploadClick, onUploadFile }: SubjectSectionProps) {
   const gender = useStudioStore((s) => s.gender);
   const position = useStudioStore((s) => s.position);
   const photoCount = useStudioStore((s) => s.photoCount);
+  const isUploadingSubject = useStudioStore((s) => s.isUploadingSubject);
+  const uploadError = useStudioStore((s) => s.uploadError);
   const setGender = useStudioStore((s) => s.setGender);
   const setPosition = useStudioStore((s) => s.setPosition);
   const setPhotoCount = useStudioStore((s) => s.setPhotoCount);
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (file && file.type.startsWith("image/")) onUploadFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
 
   return (
     <div className="space-y-5">
       <motion.div
         role="button"
         tabIndex={0}
-        onClick={onUploadClick}
-        onKeyDown={(e) => e.key === "Enter" && onUploadClick()}
-        whileHover={{ borderColor: "hsl(270 80% 65% / 0.4)" }}
+        onClick={isUploadingSubject ? undefined : onUploadClick}
+        onDrop={handleDrop}
+        onDragOver={handleDragOver}
+        onKeyDown={(e) => e.key === "Enter" && !isUploadingSubject && onUploadClick()}
+        whileHover={isUploadingSubject ? {} : { borderColor: "hsl(270 80% 65% / 0.4)" }}
         className="border-2 border-dashed border-border/40 rounded-2xl p-6 flex flex-col items-center gap-3 cursor-pointer transition-colors hover:bg-secondary/20"
       >
         <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
-          <Upload className="w-5 h-5 text-accent" />
+          {isUploadingSubject ? (
+            <Loader2 className="w-5 h-5 text-accent animate-spin" />
+          ) : (
+            <Upload className="w-5 h-5 text-accent" />
+          )}
         </div>
         <div className="text-center">
           <p className="text-sm font-medium text-foreground">
-            Arraste fotos ou clique para enviar
+            {isUploadingSubject ? "Enviando..." : "Arraste fotos ou clique para enviar"}
           </p>
           <p className="text-xs text-muted-foreground mt-1">
             Envie 1 a 5 fotos do sujeito
           </p>
         </div>
+        {uploadError && (
+          <p className="text-xs text-red-500 text-center mt-1">{uploadError}</p>
+        )}
       </motion.div>
 
       <div>

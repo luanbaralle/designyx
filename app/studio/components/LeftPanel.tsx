@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { SubjectSection } from "./sections/SubjectSection";
 import { DimensionSection } from "./sections/DimensionSection";
+import { TemplateSection } from "./sections/TemplateSection";
 import { TextOverlaySection } from "./sections/TextOverlaySection";
 import { ScenarioSection } from "./sections/ScenarioSection";
 import { ColorLightSection } from "./sections/ColorLightSection";
@@ -35,11 +36,13 @@ import { AdvancedPromptSection } from "./sections/AdvancedPromptSection";
 
 interface LeftPanelProps {
   onUploadSubject: () => void;
+  onUploadFile: (file: File) => void;
 }
 
 const sections = [
   { id: "subject", icon: User, label: "Sujeito Principal", component: SubjectSection, props: {} },
   { id: "dimension", icon: Maximize2, label: "Dimensão & Formato", component: DimensionSection, props: {} },
+  { id: "template", icon: Layout, label: "Template", component: TemplateSection, props: {} },
   { id: "text", icon: Type, label: "Texto na Arte", component: TextOverlaySection, props: {} },
   { id: "scenario", icon: MapPin, label: "Projeto & Cenário", component: ScenarioSection, props: {} },
   { id: "colors", icon: Palette, label: "Cores & Iluminação", component: ColorLightSection, props: {} },
@@ -52,7 +55,7 @@ const sections = [
   { id: "prompt", icon: Terminal, label: "Prompt Avançado", component: AdvancedPromptSection, props: {} },
 ] as const;
 
-export function LeftPanel({ onUploadSubject }: LeftPanelProps) {
+export function LeftPanel({ onUploadSubject, onUploadFile }: LeftPanelProps) {
   return (
     <div className="space-y-2">
       <Accordion
@@ -78,7 +81,7 @@ export function LeftPanel({ onUploadSubject }: LeftPanelProps) {
             </AccordionTrigger>
             <AccordionContent className="px-4 pt-4 pb-5">
               {id === "subject" ? (
-                <SubjectSection onUploadClick={onUploadSubject} />
+                <SubjectSection onUploadClick={onUploadSubject} onUploadFile={onUploadFile} />
               ) : (
                 <Component {...(props as object)} />
               )}

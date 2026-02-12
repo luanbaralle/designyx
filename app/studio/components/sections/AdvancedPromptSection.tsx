@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { motion, AnimatePresence } from "framer-motion";
+import { useStudioStore } from "../../state/studio.store";
 
 export function AdvancedPromptSection() {
-  const [enabled, setEnabled] = useState(false);
-  const [value, setValue] = useState("");
+  const enabled = useStudioStore((s) => s.advancedPromptEnabled);
+  const value = useStudioStore((s) => s.advancedPrompt);
+  const setEnabled = useStudioStore((s) => s.setAdvancedPromptEnabled);
+  const setValue = useStudioStore((s) => s.setAdvancedPrompt);
 
   return (
     <div className="space-y-4">

@@ -4,23 +4,20 @@ import { useEffect } from "react";
 import { Header } from "./components/Header";
 import { LeftPanel } from "./components/LeftPanel";
 import { RightPanel } from "./components/RightPanel";
-import { useStudioStore } from "./state/studio.store";
+import { useStudioStore, type AgentLogEntry } from "./state/studio.store";
+import { buildCreativeSpecFromStore } from "@/core/spec/creative-spec";
 
 export default function StudioPage() {
   const setCredits = useStudioStore((s) => s.setCredits);
   const setSubjectUrl = useStudioStore((s) => s.setSubjectUrl);
   const setGenerating = useStudioStore((s) => s.setGenerating);
+  const setUploadingSubject = useStudioStore((s) => s.setUploadingSubject);
+  const setUploadError = useStudioStore((s) => s.setUploadError);
+  const setBackgroundUrl = useStudioStore((s) => s.setBackgroundUrl);
   const appendLog = useStudioStore((s) => s.appendLog);
   const clearLog = useStudioStore((s) => s.clearLog);
   const setCurrentResultUrl = useStudioStore((s) => s.setCurrentResultUrl);
   const addToHistory = useStudioStore((s) => s.addToHistory);
-  const subjectUrl = useStudioStore((s) => s.subjectUrl);
-  const style = useStudioStore((s) => s.style);
-  const composition = useStudioStore((s) => s.composition);
-  const lighting = useStudioStore((s) => s.lighting);
-  const headline = useStudioStore((s) => s.headline);
-  const subheadline = useStudioStore((s) => s.subheadline);
-  const cta = useStudioStore((s) => s.cta);
 
   useEffect(() => {
     fetch("/api/credits")
@@ -35,13 +32,10 @@ export default function StudioPage() {
       .catch(() => {});
   }, [setCredits]);
 
-  const handleUploadSubject = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = "image/*";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
+  const uploadSubjectFile = async (file: File) => {
+    setUploadError(null);
+    setUploadingSubject(true);
+    try {
       const form = new FormData();
       form.set("file", file);
       form.set("type", "subject");
@@ -50,31 +44,73 @@ export default function StudioPage() {
         window.location.href = "/login";
         return;
       }
-      if (!res.ok) return;
-      const { url } = await res.json();
-      setSubjectUrl(url);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data?.error || `Erro ao enviar (${res.status})`;
+        setUploadError(msg);
+        return;
+      }
+      const url = data?.url;
+      if (url) {
+        setSubjectUrl(url);
+      } else {
+        setUploadError("Resposta inválida do servidor");
+      }
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Erro ao enviar foto");
+    } finally {
+      setUploadingSubject(false);
+    }
+  };
+
+  const handleUploadSubject = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.onchange = (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (file) uploadSubjectFile(file);
     };
     input.click();
   };
 
   const handleGenerate = async () => {
-    if (!subjectUrl) return;
+    const store = useStudioStore.getState();
+    const spec = buildCreativeSpecFromStore(store);
+
     clearLog();
     setGenerating(true);
     setCurrentResultUrl(null);
+    setBackgroundUrl(null);
 
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subjectUrl,
-          style,
-          composition,
-          lighting,
-          headline: headline || undefined,
-          subheadline: subheadline || undefined,
-          cta: cta || undefined,
+          subjectUrl: spec.subject.imageUrl || undefined,
+          format: spec.format,
+          dimension: spec.format,
+          templateId: spec.templateId,
+          style: spec.style.preset,
+          composition: spec.composition.layout,
+          lighting: spec.scene.lighting || spec.style.preset,
+          niche: spec.scene.niche,
+          environment: spec.scene.environment,
+          ambientColor: spec.scene.ambientColor,
+          rimColor: spec.scene.rimColor,
+          fillColor: spec.scene.fillColor,
+          textOverlayEnabled: spec.text.enabled,
+          headline: spec.text.headline,
+          subheadline: spec.text.subheadline,
+          cta: spec.text.cta,
+          floatingElementsEnabled: spec.floatingElements.enabled,
+          floatingElementsPrompt: spec.floatingElements.prompt,
+          postfxBlur: spec.postfx.blur,
+          postfxGradient: spec.postfx.gradient,
+          attributesScore: spec.style.attributesScore,
+          advancedPromptEnabled: store.advancedPromptEnabled,
+          advancedPrompt: spec.style.advancedPrompt,
         }),
       });
       if (res.status === 401) {
@@ -84,17 +120,16 @@ export default function StudioPage() {
       const data = await res.json();
 
       if (data.log?.length) {
-        data.log.forEach(
-          (entry: { role: string; message: string; at: number }) =>
-            appendLog(entry)
-        );
+        (data.log as AgentLogEntry[]).forEach(appendLog);
       }
 
-      if (data.imageUrl) {
-        setCurrentResultUrl(data.imageUrl);
+      const imageUrl = data.backgroundUrl ?? data.imageUrl;
+      if (imageUrl) {
+        setCurrentResultUrl(imageUrl);
+        setBackgroundUrl(imageUrl);
         addToHistory({
           id: crypto.randomUUID(),
-          imageUrl: data.imageUrl,
+          imageUrl,
           createdAt: Date.now(),
         });
       }
@@ -123,7 +158,7 @@ export default function StudioPage() {
       <main className="max-w-[1600px] mx-auto px-6 py-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-[420px_1fr] gap-6">
           <div className="max-h-[calc(100vh-112px)] overflow-y-auto pr-1">
-            <LeftPanel onUploadSubject={handleUploadSubject} />
+            <LeftPanel onUploadSubject={handleUploadSubject} onUploadFile={uploadSubjectFile} />
           </div>
 
           <div className="lg:sticky lg:top-[88px] lg:self-start">
