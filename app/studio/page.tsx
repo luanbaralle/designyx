@@ -24,8 +24,14 @@ export default function StudioPage() {
 
   useEffect(() => {
     fetch("/api/credits")
-      .then((r) => r.json())
-      .then((d) => typeof d.credits === "number" && setCredits(d.credits))
+      .then((r) => {
+        if (r.status === 401) {
+          window.location.href = "/login";
+          return null;
+        }
+        return r.json();
+      })
+      .then((d) => d && typeof d.credits === "number" && setCredits(d.credits))
       .catch(() => {});
   }, [setCredits]);
 
@@ -40,6 +46,10 @@ export default function StudioPage() {
       form.set("file", file);
       form.set("type", "subject");
       const res = await fetch("/api/uploads", { method: "POST", body: form });
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       if (!res.ok) return;
       const { url } = await res.json();
       setSubjectUrl(url);
@@ -67,6 +77,10 @@ export default function StudioPage() {
           cta: cta || undefined,
         }),
       });
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return;
+      }
       const data = await res.json();
 
       if (data.log?.length) {

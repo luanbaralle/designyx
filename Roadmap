@@ -1,0 +1,11 @@
+🚀 ROADMAP REAL (Commit por Commit até Pagamento)
+
+Sprint MVP2 (Imagen funcionando)
+Commit	Objetivo
+1	    Vertex Auth + Client funcionando
+2   	Renderer.ts chamando Imagen Generate
+3	    Retorno real no /api/generate
+4	    Template dropdown funcionando
+5   	Subject Reference básico (Face Lock v0)
+6	    Créditos reais + Stripe Checkout
+7	    Deploy Vercel + Supabase + Billing

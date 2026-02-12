@@ -1,12 +1,22 @@
 "use client";
 
-import { Flame, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Flame, Sparkles, LogOut } from "lucide-react";
 import { useStudioStore } from "../state/studio.store";
+import { createClient } from "@/lib/supabase/client";
 
 const navItems = ["Studio", "Gallery", "Presets", "Account"];
 
 export function Header() {
   const credits = useStudioStore((s) => s.credits);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setUserEmail(user?.email ?? null);
+    });
+  }, []);
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-xl bg-background/60 border-b border-border/30">
@@ -38,6 +48,11 @@ export function Header() {
         </nav>
 
         <div className="flex items-center gap-3">
+          {userEmail && (
+            <span className="text-xs text-muted-foreground max-w-[160px] truncate" title={userEmail}>
+              {userEmail}
+            </span>
+          )}
           <span className="text-xs text-muted-foreground">
             {credits} créditos
           </span>
@@ -45,6 +60,16 @@ export function Header() {
             <Sparkles className="w-3.5 h-3.5" />
             Upgrade
           </button>
+          <form action="/auth/signout" method="post" className="inline">
+            <button
+              type="submit"
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-xl transition-colors"
+              title="Sair"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Sair
+            </button>
+          </form>
         </div>
       </div>
     </header>
